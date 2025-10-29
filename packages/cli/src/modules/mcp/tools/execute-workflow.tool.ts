@@ -17,8 +17,15 @@ import { isManuallyExecutable } from './utils/manual-execution.utils';
 const MANUAL_EXECUTION_ERROR_MESSAGE =
 	'This workflow requires waiting for an external trigger (for example a webhook) before it can run. Manual execution via MCP is not possible.';
 
+const workflowInputs = {
+	chatInput: z.string().optional().describe('Input for chat-based workflows'),
+	formData: z.object({}).optional().describe('Input data for form-based workflows'),
+	webhookData: z.object({}).optional().describe('Input data for webhook-based workflows'),
+} satisfies z.ZodRawShape;
+
 const inputSchema = {
 	workflowId: z.string().describe('The ID of the workflow to execute'),
+	inputs: z.object(workflowInputs).optional().describe('Inputs to provide to the workflow'),
 } satisfies z.ZodRawShape;
 
 const outputSchema = {
@@ -60,16 +67,16 @@ export const createExecuteWorkflowTool = (
 	},
 	// TODO: Refactor
 	// eslint-disable-next-line complexity
-	handler: async ({ workflowId }) => {
+	handler: async ({ workflowId, inputs }) => {
 		const workflow = await workflowFinderService.findWorkflowForUser(workflowId, user, [
 			'workflow:read',
 		]);
 
-		// if (!workflow || workflow.isArchived || !workflow.settings?.availableInMCP) {
-		if (!workflow || workflow.isArchived) {
+		if (!workflow || workflow.isArchived || !workflow.settings?.availableInMCP) {
 			throw new UserError('Workflow not found');
 		}
 
+		// TODO: Remove this and use trigger-based detection
 		const canManuallyExecute = await isManuallyExecutable({ user, workflow, testWebhooks });
 
 		const manualRunPayload: WorkflowRequest.ManualRunPayload = {
@@ -97,7 +104,7 @@ export const createExecuteWorkflowTool = (
 					triggerData = {
 						sessionId: `mcp-session-${Date.now()}`,
 						action: 'sendMessage',
-						chatInput: 'Hey there',
+						chatInput: inputs.chatInput,
 					};
 				} else if (formTriggerNode) {
 					triggerData = {
