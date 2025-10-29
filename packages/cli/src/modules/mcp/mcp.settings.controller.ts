@@ -13,6 +13,7 @@ import { BadRequestError } from '@/errors/response-errors/bad-request.error';
 import { NotFoundError } from '@/errors/response-errors/not-found.error';
 import { WorkflowFinderService } from '@/workflows/workflow-finder.service';
 import { WorkflowService } from '@/workflows/workflow.service';
+import { isWorkflowEligibleForMCPAccess } from './mcp.utils';
 
 @RestController('/mcp')
 export class McpSettingsController {
@@ -82,11 +83,9 @@ export class McpSettingsController {
 			throw new BadRequestError('MCP access can only be set for active workflows');
 		}
 
-		const hasWebhooks = workflow.nodes.some(
-			(node) => node.type === WEBHOOK_NODE_TYPE && node.disabled !== true,
-		);
+		const isEligible = isWorkflowEligibleForMCPAccess(workflow);
 
-		if (!hasWebhooks) {
+		if (!isEligible) {
 			throw new BadRequestError('MCP access can only be set for webhook-triggered workflows');
 		}
 

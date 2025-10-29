@@ -1,4 +1,12 @@
-import { WEBHOOK_NODE_TYPE } from '@/constants';
+import {
+	CHAT_TRIGGER_NODE_TYPE,
+	ERROR_TRIGGER_NODE_TYPE,
+	EXECUTE_WORKFLOW_TRIGGER_NODE_TYPE,
+	FORM_TRIGGER_NODE_TYPE,
+	MANUAL_TRIGGER_NODE_TYPE,
+	SCHEDULE_TRIGGER_NODE_TYPE,
+	WEBHOOK_NODE_TYPE,
+} from '@/constants';
 import type { IWorkflowDb } from '@/Interface';
 import { useTelemetry } from '@/composables/useTelemetry';
 
@@ -6,15 +14,30 @@ export function useMcp() {
 	const telemetry = useTelemetry();
 
 	/**
-	 * Checks if MCP access can be enabled for the given workflow.
-	 * A workflow is eligible if it is active and has at least one enabled webhook trigger.
+	 * Determines if MCP access can be toggled for a given workflow.
+	 * Workflow is eligible if it contains at least one of these (enabled) trigger nodes:
+	 * - Manual trigger
+	 * - Schedule trigger
+	 * - Webhook trigger
+	 * - Form trigger
+	 * - Execute workflow trigger
+	 * - Chat trigger
+	 * - Error trigger
+	 * @param workflow
 	 */
 	const isEligibleForMcpAccess = (workflow: IWorkflowDb) => {
-		if (!workflow.active) {
-			return false;
-		}
-		// If it's active, check if workflow has at least one enabled webhook trigger:
-		return workflow.nodes.some((node) => node.type === WEBHOOK_NODE_TYPE && node.disabled !== true);
+		const mcpTriggerNodeTypes = [
+			MANUAL_TRIGGER_NODE_TYPE,
+			SCHEDULE_TRIGGER_NODE_TYPE,
+			WEBHOOK_NODE_TYPE,
+			FORM_TRIGGER_NODE_TYPE,
+			EXECUTE_WORKFLOW_TRIGGER_NODE_TYPE,
+			CHAT_TRIGGER_NODE_TYPE,
+			ERROR_TRIGGER_NODE_TYPE,
+		];
+		return workflow.nodes.some(
+			(node) => mcpTriggerNodeTypes.includes(node.type) && node.disabled !== true,
+		);
 	};
 
 	const trackMcpAccessEnabledForWorkflow = (workflowId: string) => {
