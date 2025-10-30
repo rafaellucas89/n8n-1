@@ -121,15 +121,16 @@ const getScheduleTriggerDetails = (scheduleTriggers: INode[]): string => {
 };
 
 const getFormTriggerDetails = (formTriggers: INode[]): string => {
+	// TODO: Extract auth details
 	const header = 'Form trigger(s):\n\n';
-	// TODO: Extract exact inputs
 	const footer =
-		'\n\nUse the following input format when directly executing this workflow using any of the chat triggers: { inputs { formData: <FORM_FIELD_VALUES_HERE> } }';
+		'\n\nUse the following input format when directly executing this workflow using any of the chat triggers: { inputs { formData: <FORM_FIELDS_HERE> } }';
 	const triggers = formTriggers
 		.map(
 			(node, index) => `
 				<trigger ${index + 1}>
 				\t - Node name: ${node.name}
+				\t - Form fields: ${JSON.stringify(node.parameters.formFields ?? 'N/A')}
 				</trigger ${index + 1}>`,
 		)
 		.join('\n\n');
