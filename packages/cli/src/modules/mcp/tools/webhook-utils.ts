@@ -124,7 +124,7 @@ const getFormTriggerDetails = (formTriggers: INode[]): string => {
 	// TODO: Extract auth details
 	const header = 'Form trigger(s):\n\n';
 	const footer =
-		'\n\nUse the following input format when directly executing this workflow using any of the chat triggers: { inputs { formData: <FORM_FIELDS_HERE> } }';
+		'\n\nUse the following input format when directly executing this workflow using any of the chat triggers: { inputs { formData: Array<{ FIELD_NAME: VALUE }> } }';
 	const triggers = formTriggers
 		.map(
 			(node, index) => `

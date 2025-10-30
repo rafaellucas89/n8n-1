@@ -14,8 +14,8 @@ import { isManuallyExecutable } from './utils/manual-execution.utils';
 
 const workflowInputs = {
 	chatInput: z.string().optional().describe('Input for chat-based workflows'),
-	formData: z.object({}).optional().describe('Input data for form-based workflows'),
-	webhookData: z.object({}).optional().describe('Input data for webhook-based workflows'),
+	formData: z.record(z.unknown()).optional().describe('Input data for form-based workflows'),
+	webhookData: z.record(z.unknown()).optional().describe('Input data for webhook-based workflows'),
 } satisfies z.ZodRawShape;
 
 const inputSchema = {
@@ -119,7 +119,8 @@ export const createExecuteWorkflowTool = (
 							{
 								json: {
 									submittedAt: new Date().toISOString(),
-									formMode: 'test',
+									formMode: 'mcp',
+									...(inputs?.formData ?? {}),
 								},
 							},
 						],
