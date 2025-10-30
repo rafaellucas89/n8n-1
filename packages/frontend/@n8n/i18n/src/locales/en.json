@@ -2893,7 +2893,7 @@
 	"workflowSettings.toggleMCP.notFoundError": "Workflow not found",
 	"workflowSettings.description.label": "Description",
 	"workflowSettings.description.description": "Describe the purpose and functionality of this workflow so MCP clients can understand when to use it",
-	"workflowSettings.description.placeholder": "Call this workflow to...",
+	"workflowSettings.description.placeholder": "If the workflow is triggered by a webhook, include details about the expected inputs (payload format and wether it should be sent as request body or URL parameters)",
 	"workflowHistory.title": "Version History",
 	"workflowHistory.content.title": "Version",
 	"workflowHistory.content.editedBy": "Edited by",

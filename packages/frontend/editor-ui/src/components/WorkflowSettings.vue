@@ -904,7 +904,7 @@ onBeforeUnmount(() => {
 								type="textarea"
 								:rows="4"
 								:disabled="readOnlyEnv || !workflowPermissions.update"
-								:placeholder="i18n.baseText('workflowSettings.description.placeholder')"
+								:placeholder="`${i18n.baseText('workflowSettings.description.description')}. \n${i18n.baseText('workflowSettings.description.placeholder')}`"
 								data-test-id="workflow-settings-description"
 							/>
 						</div>

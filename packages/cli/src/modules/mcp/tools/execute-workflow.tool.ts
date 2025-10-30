@@ -15,7 +15,23 @@ import { isManuallyExecutable } from './utils/manual-execution.utils';
 const workflowInputs = {
 	chatInput: z.string().optional().describe('Input for chat-based workflows'),
 	formData: z.record(z.unknown()).optional().describe('Input data for form-based workflows'),
-	webhookData: z.record(z.unknown()).optional().describe('Input data for webhook-based workflows'),
+	webhookData: z
+		.object({
+			body: z.record(z.unknown()).optional().describe('Request body data (main webhook payload)'),
+			headers: z
+				.record(z.string())
+				.optional()
+				.describe('HTTP headers (e.g., authorization, content-type)'),
+			query: z.record(z.string()).optional().describe('Query string parameters'),
+			params: z.record(z.string()).optional().describe('URL path parameters'),
+			method: z
+				.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
+				.optional()
+				.default('POST')
+				.describe('HTTP method (defaults to POST)'),
+		})
+		.optional()
+		.describe('Input data for webhook-based workflows'),
 } satisfies z.ZodRawShape;
 
 const inputSchema = {
@@ -125,15 +141,19 @@ export const createExecuteWorkflowTool = (
 							},
 						],
 					};
-				} else {
+				} else if (webhookNode) {
+					const webhookInput = inputs?.webhookData;
 					runData.pinData = {
-						[triggerNode.name]: [
+						[webhookNode.name]: [
 							{
 								json: {
-									headers: {},
-									params: {},
-									query: {},
-									body: {},
+									headers: webhookInput?.headers ?? {},
+									params: webhookInput?.params ?? {},
+									query: webhookInput?.query ?? {},
+									body: webhookInput?.body ?? {},
+									// TODO: Add this
+									// webhookUrl: `http://localhost:5678/webhook/${workflow.id}`,
+									executionMode: 'manual',
 								},
 							},
 						],
