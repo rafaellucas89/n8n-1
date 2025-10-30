@@ -884,6 +884,32 @@ onBeforeUnmount(() => {
 						</div>
 					</ElCol>
 				</ElRow>
+				<ElRow v-if="isMCPEnabled && workflowSettings.availableInMCP">
+					<ElCol :span="10" :class="$style['setting-name']">
+						<label for="description">
+							{{ i18n.baseText('workflowSettings.description.label') }}
+							<N8nTooltip placement="top">
+								<template #content>
+									{{ i18n.baseText('workflowSettings.description.description') }}
+								</template>
+								<N8nIcon icon="circle-help" />
+							</N8nTooltip>
+						</label>
+					</ElCol>
+					<ElCol :span="14">
+						<div :class="$style.description">
+							<N8nInput
+								id="description"
+								v-model="workflowSettings.description"
+								type="textarea"
+								:rows="4"
+								:disabled="readOnlyEnv || !workflowPermissions.update"
+								:placeholder="i18n.baseText('workflowSettings.description.placeholder')"
+								data-test-id="workflow-settings-description"
+							/>
+						</div>
+					</ElCol>
+				</ElRow>
 				<ElRow>
 					<ElCol :span="10" :class="$style['setting-name']">
 						<label for="timeSavedPerExecution">

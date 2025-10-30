@@ -411,6 +411,7 @@ export interface IWorkflowSettings extends IWorkflowSettingsWorkflow {
 	callerPolicy?: WorkflowSettings.CallerPolicy;
 	executionOrder: NonNullable<IWorkflowSettingsWorkflow['executionOrder']>;
 	availableInMCP?: boolean;
+	description?: string;
 }
 
 export interface ITimeoutHMS {

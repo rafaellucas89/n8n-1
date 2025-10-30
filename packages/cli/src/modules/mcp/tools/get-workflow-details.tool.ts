@@ -136,6 +136,7 @@ export async function getWorkflowDetails(
 		tags: (workflow.tags ?? []).map((tag) => ({ id: tag.id, name: tag.name })),
 		meta: workflow.meta ?? null,
 		parentFolderId: workflow.parentFolder?.id ?? null,
+		description: workflow.settings?.description,
 	};
 
 	return { workflow: sanitizedWorkflow, triggerInfo: triggerNotice };
