@@ -45,6 +45,8 @@ import {
 	RESPOND_TO_CHAT_NODE_TYPE,
 	IExecuteData,
 	IRunExecutionData,
+	type IBinaryData,
+	type INodeExecutionData,
 } from 'n8n-workflow';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -68,12 +70,13 @@ import {
 	NODE_NAMES,
 	PROVIDER_NODE_TYPE_MAP,
 } from './chat-hub.constants';
-import type {
-	HumanMessagePayload,
-	RegenerateMessagePayload,
-	EditMessagePayload,
-	MessageRecord,
-	ModelWithCredentials,
+import {
+	type HumanMessagePayload,
+	type RegenerateMessagePayload,
+	type EditMessagePayload,
+	type MessageRecord,
+	type ModelWithCredentials,
+	validChatTriggerParamsShape,
 } from './chat-hub.types';
 import { ChatHubMessageRepository } from './chat-message.repository';
 import { ChatHubSessionRepository } from './chat-session.repository';
@@ -200,6 +203,7 @@ export class ChatHubService {
 				},
 				createdAt: null,
 				updatedAt: null,
+				allowFileUploads: true,
 			})),
 		};
 	}
@@ -227,6 +231,7 @@ export class ChatHubService {
 				},
 				createdAt: null,
 				updatedAt: null,
+				allowFileUploads: true,
 			})),
 		};
 	}
@@ -292,6 +297,7 @@ export class ChatHubService {
 				},
 				createdAt: null,
 				updatedAt: null,
+				allowFileUploads: true,
 			})),
 		};
 	}
@@ -315,30 +321,25 @@ export class ChatHubService {
 						return [];
 					}
 
-					if (chatTrigger.parameters.availableInChat !== true) {
+					const chatTriggerParams = validChatTriggerParamsShape.safeParse(
+						chatTrigger.parameters,
+					).data;
+
+					if (!chatTriggerParams) {
 						return [];
 					}
 
-					const name =
-						typeof chatTrigger.parameters.agentName === 'string' &&
-						chatTrigger.parameters.agentName.length > 0
-							? chatTrigger.parameters.agentName
-							: workflow.name;
-
 					return [
 						{
-							name: name ?? 'Unknown Agent',
-							description:
-								typeof chatTrigger.parameters.agentDescription === 'string' &&
-								chatTrigger.parameters.agentDescription.length > 0
-									? chatTrigger.parameters.agentDescription
-									: null,
+							name: chatTriggerParams.agentName ?? workflow.name ?? 'Unknown Agent',
+							description: chatTriggerParams.agentDescription ?? null,
 							model: {
 								provider: 'n8n',
 								workflowId: workflow.id,
 							},
 							createdAt: workflow.createdAt ? workflow.createdAt.toISOString() : null,
 							updatedAt: workflow.updatedAt ? workflow.updatedAt.toISOString() : null,
+							allowFileUploads: chatTriggerParams.options?.allowFileUploads ?? false,
 						},
 					];
 				}),
@@ -351,6 +352,7 @@ export class ChatHubService {
 		projectId: string,
 		history: ChatHubMessage[],
 		humanMessage: string,
+		attachments: IBinaryData[],
 		credentials: INodeCredentials,
 		model: ChatHubConversationModel,
 		generateConversationTitle: boolean,
@@ -363,6 +365,7 @@ export class ChatHubService {
 				sessionId,
 				history,
 				humanMessage,
+				attachments,
 				credentials,
 				model,
 				generateConversationTitle,
@@ -454,7 +457,8 @@ export class ChatHubService {
 	}
 
 	async sendHumanMessage(res: Response, user: User, payload: HumanMessagePayload) {
-		const { sessionId, messageId, message, model, credentials, previousMessageId } = payload;
+		const { sessionId, messageId, message, model, credentials, previousMessageId, attachments } =
+			payload;
 		const provider = payload.model.provider;
 
 		const selectedModel = this.getModelWithCredentials(model, credentials);
@@ -484,6 +488,7 @@ export class ChatHubService {
 						sessionId,
 						payload.model.workflowId,
 						message,
+						attachments,
 					);
 				}
 
@@ -494,6 +499,7 @@ export class ChatHubService {
 						sessionId,
 						history,
 						message,
+						attachments,
 						generateTitle,
 						trx,
 					);
@@ -506,6 +512,7 @@ export class ChatHubService {
 					model,
 					history,
 					message,
+					attachments,
 					generateTitle,
 					trx,
 				);
@@ -552,7 +559,11 @@ export class ChatHubService {
 				const revisionOfMessageId = messageToEdit.revisionOfMessageId ?? messageToEdit.id;
 
 				await this.saveHumanMessage(
-					payload,
+					{
+						...payload,
+						// TODO: should we allow to update attachments as well when editing?
+						attachments: messageToEdit.attachments ?? [],
+					},
 					user,
 					messageToEdit.previousMessageId,
 					selectedModel,
@@ -566,6 +577,7 @@ export class ChatHubService {
 						sessionId,
 						payload.model.workflowId,
 						message,
+						messageToEdit.attachments ?? [],
 					);
 				}
 
@@ -576,6 +588,7 @@ export class ChatHubService {
 						sessionId,
 						history,
 						message,
+						messageToEdit.attachments ?? [],
 						false,
 						trx,
 					);
@@ -588,6 +601,7 @@ export class ChatHubService {
 					model,
 					history,
 					message,
+					messageToEdit.attachments ?? [],
 					false,
 					trx,
 				);
@@ -650,6 +664,7 @@ export class ChatHubService {
 			// If the message being retried is itself a retry, we want to point to the original message
 			const retryOfMessageId = messageToRetry.retryOfMessageId ?? messageToRetry.id;
 			const message = lastHumanMessage ? lastHumanMessage.content : '';
+			const attachments = lastHumanMessage.attachments ?? [];
 
 			let workflow;
 			if (provider === 'n8n') {
@@ -658,6 +673,7 @@ export class ChatHubService {
 					sessionId,
 					payload.model.workflowId,
 					message,
+					attachments,
 				);
 			} else if (provider === 'custom-agent') {
 				workflow = await this.prepareChatAgentWorkflow(
@@ -666,6 +682,7 @@ export class ChatHubService {
 					sessionId,
 					history,
 					message,
+					attachments,
 					false,
 					trx,
 				);
@@ -677,6 +694,7 @@ export class ChatHubService {
 					model,
 					history,
 					message,
+					attachments,
 					false,
 					trx,
 				);
@@ -709,6 +727,7 @@ export class ChatHubService {
 		model: ChatHubConversationModel,
 		history: ChatHubMessage[],
 		message: string,
+		attachments: IBinaryData[],
 		generateConversationTitle: boolean,
 		trx: EntityManager,
 		systemMessage?: string,
@@ -721,6 +740,7 @@ export class ChatHubService {
 			credential.projectId,
 			history,
 			message,
+			attachments,
 			credentials,
 			model,
 			generateConversationTitle,
@@ -735,6 +755,7 @@ export class ChatHubService {
 		sessionId: ChatSessionId,
 		history: ChatHubMessage[],
 		message: string,
+		attachments: IBinaryData[],
 		generateConversationTitle: boolean,
 		trx: EntityManager,
 	) {
@@ -778,6 +799,7 @@ export class ChatHubService {
 			model,
 			history,
 			message,
+			attachments,
 			generateConversationTitle,
 			trx,
 			systemMessage,
@@ -789,6 +811,7 @@ export class ChatHubService {
 		sessionId: ChatSessionId,
 		workflowId: string,
 		message: string,
+		attachments: IBinaryData[],
 	) {
 		const workflowEntity = await this.workflowFinderService.findWorkflowForUser(
 			workflowId,
@@ -825,17 +848,7 @@ export class ChatHubService {
 			{
 				node: chatTriggerNode,
 				data: {
-					main: [
-						[
-							{
-								json: {
-									sessionId,
-									action: 'sendMessage',
-									chatInput: message,
-								},
-							},
-						],
-					],
+					main: [[this.createChatNodeExecutionData(sessionId, message, attachments)]],
 				},
 				source: null,
 			},
@@ -1108,6 +1121,7 @@ export class ChatHubService {
 		sessionId,
 		history,
 		humanMessage,
+		attachments,
 		credentials,
 		model,
 		generateConversationTitle,
@@ -1117,13 +1131,18 @@ export class ChatHubService {
 		sessionId: ChatSessionId;
 		history: ChatHubMessage[];
 		humanMessage: string;
+		attachments: IBinaryData[];
 		credentials: INodeCredentials;
 		model: ChatHubConversationModel;
 		generateConversationTitle: boolean;
 		systemMessage?: string;
 	}) {
 		const chatTriggerNode: INode = {
-			parameters: {},
+			parameters: {
+				options: {
+					allowFileUploads: true,
+				},
+			},
 			type: CHAT_TRIGGER_NODE_TYPE,
 			typeVersion: 1.3,
 			position: [0, 0],
@@ -1134,6 +1153,19 @@ export class ChatHubService {
 
 		const nodes: INode[] = [
 			chatTriggerNode,
+			{
+				parameters: {
+					mode: 'combine',
+					fieldsToMatchString: 'chatInput',
+					joinMode: 'enrichInput1',
+					options: {},
+				},
+				type: 'n8n-nodes-base.merge',
+				typeVersion: 3.2,
+				position: [768, -256],
+				id: uuidv4(),
+				name: NODE_NAMES.MERGE,
+			},
 			{
 				parameters: {
 					promptType: 'define',
@@ -1228,16 +1260,22 @@ export class ChatHubService {
 		const connections: IConnections = {
 			[NODE_NAMES.CHAT_TRIGGER]: {
 				main: [
-					[{ node: NODE_NAMES.RESTORE_CHAT_MEMORY, type: NodeConnectionTypes.Main, index: 0 }],
+					[
+						{ node: NODE_NAMES.RESTORE_CHAT_MEMORY, type: NodeConnectionTypes.Main, index: 0 },
+						{ node: NODE_NAMES.MERGE, type: NodeConnectionTypes.Main, index: 0 },
+					],
 				],
 			},
 			[NODE_NAMES.RESTORE_CHAT_MEMORY]: {
 				main: [
 					[
-						{ node: NODE_NAMES.REPLY_AGENT, type: NodeConnectionTypes.Main, index: 0 },
+						{ node: NODE_NAMES.MERGE, type: NodeConnectionTypes.Main, index: 1 },
 						{ node: NODE_NAMES.TITLE_GENERATOR_AGENT, type: NodeConnectionTypes.Main, index: 0 },
 					],
 				],
+			},
+			[NODE_NAMES.MERGE]: {
+				main: [[{ node: NODE_NAMES.REPLY_AGENT, type: NodeConnectionTypes.Main, index: 0 }]],
 			},
 			[NODE_NAMES.CHAT_MODEL]: {
 				// eslint-disable-next-line @typescript-eslint/naming-convention
@@ -1278,17 +1316,7 @@ export class ChatHubService {
 			{
 				node: chatTriggerNode,
 				data: {
-					main: [
-						[
-							{
-								json: {
-									sessionId,
-									action: 'sendMessage',
-									chatInput: humanMessage,
-								},
-							},
-						],
-					],
+					main: [[this.createChatNodeExecutionData(sessionId, humanMessage, attachments)]],
 				},
 				source: null,
 			},
@@ -1315,7 +1343,7 @@ export class ChatHubService {
 	}
 
 	private async saveHumanMessage(
-		payload: HumanMessagePayload | EditMessagePayload,
+		payload: (HumanMessagePayload | EditMessagePayload) & { attachments: IBinaryData[] },
 		user: User,
 		previousMessageId: ChatMessageId | null,
 		selectedModel: ModelWithCredentials,
@@ -1333,6 +1361,7 @@ export class ChatHubService {
 				revisionOfMessageId,
 				...selectedModel,
 				name: user.firstName || 'User',
+				attachments: payload.attachments,
 			},
 			trx,
 		);
@@ -1586,6 +1615,26 @@ export class ChatHubService {
 			previousMessageId: message.previousMessageId,
 			retryOfMessageId: message.retryOfMessageId,
 			revisionOfMessageId: message.revisionOfMessageId,
+
+			attachments: message.attachments ?? [],
+		};
+	}
+
+	private createChatNodeExecutionData(
+		sessionId: string,
+		message: string,
+		attachments: IBinaryData[],
+	): INodeExecutionData {
+		return {
+			json: {
+				sessionId,
+				action: 'sendMessage',
+				chatInput: message,
+				files: attachments.map(({ data, ...metadata }) => metadata),
+			},
+			binary: Object.fromEntries(
+				attachments.map((attachment, index) => [`data${index}`, attachment]),
+			),
 		};
 	}
 

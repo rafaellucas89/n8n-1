@@ -1,4 +1,4 @@
-import type { StructuredChunk } from 'n8n-workflow';
+import type { IBinaryData, StructuredChunk } from 'n8n-workflow';
 import { z } from 'zod';
 import { Z } from 'zod-class';
 
@@ -87,6 +87,7 @@ export interface ChatModelDto {
 	description: string | null;
 	updatedAt: string | null;
 	createdAt: string | null;
+	allowFileUploads: boolean;
 }
 
 /**
@@ -108,6 +109,27 @@ export const emptyChatModelsResponse: ChatModelsResponse = {
 	'custom-agent': { models: [] },
 };
 
+export const binaryFileTypeSchema = z.enum([
+	'text',
+	'json',
+	'image',
+	'audio',
+	'video',
+	'pdf',
+	'html',
+]);
+
+export const binaryDataSchema = z.object({
+	data: z.string(),
+	mimeType: z.string(),
+	fileType: binaryFileTypeSchema.optional(),
+	fileName: z.string().optional(),
+	directory: z.string().optional(),
+	fileExtension: z.string().optional(),
+	fileSize: z.string().optional(),
+	id: z.string().optional(),
+});
+
 export class ChatHubSendMessageRequest extends Z.class({
 	messageId: z.string().uuid(),
 	sessionId: z.string().uuid(),
@@ -120,6 +142,7 @@ export class ChatHubSendMessageRequest extends Z.class({
 			name: z.string(),
 		}),
 	),
+	attachments: z.array(binaryDataSchema),
 }) {}
 
 export class ChatHubRegenerateMessageRequest extends Z.class({
@@ -192,6 +215,8 @@ export interface ChatHubMessageDto {
 	previousMessageId: ChatMessageId | null;
 	retryOfMessageId: ChatMessageId | null;
 	revisionOfMessageId: ChatMessageId | null;
+
+	attachments: IBinaryData[];
 }
 
 export type ChatHubConversationsResponse = ChatHubSessionDto[];
