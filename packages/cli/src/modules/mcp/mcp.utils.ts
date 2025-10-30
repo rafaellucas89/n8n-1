@@ -1,16 +1,13 @@
 import type { AuthenticatedRequest, WorkflowEntity } from '@n8n/db';
 import type { Request } from 'express';
-
-import { isRecord, isJSONRPCRequest } from './mcp.typeguards';
 import {
 	CHAT_TRIGGER_NODE_TYPE,
-	ERROR_TRIGGER_NODE_TYPE,
-	EXECUTE_WORKFLOW_TRIGGER_NODE_TYPE,
 	FORM_TRIGGER_NODE_TYPE,
-	MANUAL_TRIGGER_NODE_TYPE,
 	SCHEDULE_TRIGGER_NODE_TYPE,
 	WEBHOOK_NODE_TYPE,
 } from 'n8n-workflow';
+
+import { isRecord, isJSONRPCRequest } from './mcp.typeguards';
 
 export const getClientInfo = (req: Request | AuthenticatedRequest) => {
 	let clientInfo: { name?: string; version?: string } | undefined;
@@ -57,24 +54,18 @@ export const getToolArguments = (body: unknown): Record<string, unknown> => {
 /**
  * Determines if MCP access can be toggled for a given workflow.
  * Workflow is eligible if it contains at least one of these (enabled) trigger nodes:
- * - Manual trigger
  * - Schedule trigger
  * - Webhook trigger
  * - Form trigger
- * - Execute workflow trigger
  * - Chat trigger
- * - Error trigger
  * @param workflow
  */
 export const isWorkflowEligibleForMCPAccess = (workflow: WorkflowEntity): boolean => {
 	const triggerNodeTypes = [
-		MANUAL_TRIGGER_NODE_TYPE,
 		SCHEDULE_TRIGGER_NODE_TYPE,
 		WEBHOOK_NODE_TYPE,
 		FORM_TRIGGER_NODE_TYPE,
-		EXECUTE_WORKFLOW_TRIGGER_NODE_TYPE,
 		CHAT_TRIGGER_NODE_TYPE,
-		ERROR_TRIGGER_NODE_TYPE,
 	];
 	return workflow.nodes.some(
 		(node) => triggerNodeTypes.includes(node.type) && node.disabled !== true,

@@ -86,7 +86,7 @@ export class McpSettingsController {
 		const isEligible = isWorkflowEligibleForMCPAccess(workflow);
 
 		if (!isEligible) {
-			throw new BadRequestError('MCP access can only be set for webhook-triggered workflows');
+			throw new BadRequestError('MCP access can not be set for this workflow');
 		}
 
 		const workflowUpdate = new WorkflowEntity();

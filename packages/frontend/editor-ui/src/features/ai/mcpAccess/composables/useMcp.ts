@@ -16,24 +16,18 @@ export function useMcp() {
 	/**
 	 * Determines if MCP access can be toggled for a given workflow.
 	 * Workflow is eligible if it contains at least one of these (enabled) trigger nodes:
-	 * - Manual trigger
 	 * - Schedule trigger
 	 * - Webhook trigger
 	 * - Form trigger
-	 * - Execute workflow trigger
 	 * - Chat trigger
-	 * - Error trigger
 	 * @param workflow
 	 */
 	const isEligibleForMcpAccess = (workflow: IWorkflowDb) => {
 		const mcpTriggerNodeTypes = [
-			MANUAL_TRIGGER_NODE_TYPE,
 			SCHEDULE_TRIGGER_NODE_TYPE,
 			WEBHOOK_NODE_TYPE,
 			FORM_TRIGGER_NODE_TYPE,
-			EXECUTE_WORKFLOW_TRIGGER_NODE_TYPE,
 			CHAT_TRIGGER_NODE_TYPE,
-			ERROR_TRIGGER_NODE_TYPE,
 		];
 		return workflow.nodes.some(
 			(node) => mcpTriggerNodeTypes.includes(node.type) && node.disabled !== true,

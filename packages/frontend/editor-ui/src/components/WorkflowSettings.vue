@@ -100,7 +100,7 @@ const workflowOwnerName = computed(() => {
 const workflowPermissions = computed(() => getResourcePermissions(workflow.value?.scopes).workflow);
 
 const isEligibleForMcp = computed(() => {
-	if (!workflow?.value) return false;
+	if (!workflow?.value?.active) return false;
 	return isEligibleForMcpAccess(workflow.value);
 });
 
