@@ -1,7 +1,9 @@
 import { type ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type z from 'zod';
+import type { INode } from 'n8n-workflow';
 
 import type { WorkflowDetailsOutputSchema } from './tools/get-workflow-details.tool';
+import { SUPPORTED_MCP_TRIGGERS } from './mcp.constants';
 
 export type ToolDefinition<InputArgs extends z.ZodRawShape = z.ZodRawShape> = {
 	name: string;
@@ -72,4 +74,10 @@ export type UserCalledMCPToolEventPayload = {
 		data?: unknown;
 		error?: string;
 	};
+};
+
+type SupportedTriggerNodeTypes = keyof typeof SUPPORTED_MCP_TRIGGERS;
+
+export type MCPTriggersMap = {
+	[K in SupportedTriggerNodeTypes]: INode[];
 };

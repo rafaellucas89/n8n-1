@@ -1,12 +1,7 @@
 import type { AuthenticatedRequest, WorkflowEntity } from '@n8n/db';
 import type { Request } from 'express';
-import {
-	CHAT_TRIGGER_NODE_TYPE,
-	FORM_TRIGGER_NODE_TYPE,
-	SCHEDULE_TRIGGER_NODE_TYPE,
-	WEBHOOK_NODE_TYPE,
-} from 'n8n-workflow';
 
+import { SUPPORTED_MCP_TRIGGERS } from './mcp.constants';
 import { isRecord, isJSONRPCRequest } from './mcp.typeguards';
 
 export const getClientInfo = (req: Request | AuthenticatedRequest) => {
@@ -61,12 +56,7 @@ export const getToolArguments = (body: unknown): Record<string, unknown> => {
  * @param workflow
  */
 export const isWorkflowEligibleForMCPAccess = (workflow: WorkflowEntity): boolean => {
-	const triggerNodeTypes = [
-		SCHEDULE_TRIGGER_NODE_TYPE,
-		WEBHOOK_NODE_TYPE,
-		FORM_TRIGGER_NODE_TYPE,
-		CHAT_TRIGGER_NODE_TYPE,
-	];
+	const triggerNodeTypes = Object.keys(SUPPORTED_MCP_TRIGGERS);
 	return workflow.nodes.some(
 		(node) => triggerNodeTypes.includes(node.type) && node.disabled !== true,
 	);
