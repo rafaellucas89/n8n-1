@@ -1,21 +1,16 @@
 import type { ExecutionRepository, IExecutionResponse, User } from '@n8n/db';
 import { UserError } from 'n8n-workflow';
-import type { IDataObject, IRun } from 'n8n-workflow';
+import type { IRun, IWorkflowExecutionDataProcess } from 'n8n-workflow';
 import z from 'zod';
 
 import type { ActiveExecutions } from '@/active-executions';
 import { ExecutionNotFoundError } from '@/errors/execution-not-found-error';
 import type { TestWebhooks } from '@/webhooks/test-webhooks';
-import type { WorkflowExecutionService } from '@/workflows/workflow-execution.service';
+import type { WorkflowRunner } from '@/workflow-runner';
 import type { WorkflowFinderService } from '@/workflows/workflow-finder.service';
-import type { WorkflowRequest } from '@/workflows/workflow.request';
 
 import type { ToolDefinition } from '../mcp.types';
 import { isManuallyExecutable } from './utils/manual-execution.utils';
-
-// TODO: Move to constants
-const MANUAL_EXECUTION_ERROR_MESSAGE =
-	'This workflow requires waiting for an external trigger (for example a webhook) before it can run. Manual execution via MCP is not possible.';
 
 const workflowInputs = {
 	chatInput: z.string().optional().describe('Input for chat-based workflows'),
@@ -54,10 +49,10 @@ const outputSchema = {
 export const createExecuteWorkflowTool = (
 	user: User,
 	workflowFinderService: WorkflowFinderService,
-	workflowExecutionService: WorkflowExecutionService,
 	testWebhooks: TestWebhooks,
 	activeExecutions: ActiveExecutions,
 	executionRepository: ExecutionRepository,
+	workflowRunner: WorkflowRunner,
 ): ToolDefinition<typeof inputSchema> => ({
 	name: 'execute_workflow',
 	config: {
@@ -76,13 +71,19 @@ export const createExecuteWorkflowTool = (
 			throw new UserError('Workflow not found');
 		}
 
-		// TODO: Remove this and use trigger-based detection
+		// TODO:
+		// - Remove this and use trigger-based detection
+		// - Support multiple triggers
 		const canManuallyExecute = await isManuallyExecutable({ user, workflow, testWebhooks });
 
-		const manualRunPayload: WorkflowRequest.ManualRunPayload = {
+		const runData: IWorkflowExecutionDataProcess = {
+			executionMode: 'manual',
 			workflowData: workflow,
+			userId: user.id,
 		};
 
+		// For supported webhook-based triggers (webhook, form and chat),
+		// use inputs as pin data to trigger the workflow synchronously
 		if (!canManuallyExecute) {
 			const chatTriggerNode = workflow.nodes.find(
 				(node) => !node.disabled && node.type === '@n8n/n8n-nodes-langchain.chatTrigger',
@@ -98,72 +99,49 @@ export const createExecuteWorkflowTool = (
 
 			// TODO: Use inputs
 			if (triggerNode) {
-				let triggerData: IDataObject = {};
-
+				// Set the trigger node as the start node
+				runData.startNodes = [{ name: triggerNode.name, sourceData: null }];
 				if (chatTriggerNode) {
-					triggerData = {
-						sessionId: `mcp-session-${Date.now()}`,
-						action: 'sendMessage',
-						chatInput: inputs.chatInput,
+					runData.pinData = {
+						[chatTriggerNode.name]: [
+							{
+								json: {
+									sessionId: `mcp-session-${Date.now()}`,
+									action: 'sendMessage',
+									chatInput: inputs?.chatInput,
+								},
+							},
+						],
 					};
 				} else if (formTriggerNode) {
-					triggerData = {
-						submittedAt: new Date().toISOString(),
-						formMode: 'test',
+					runData.pinData = {
+						[formTriggerNode.name]: [
+							{
+								json: {
+									submittedAt: new Date().toISOString(),
+									formMode: 'test',
+								},
+							},
+						],
 					};
 				} else {
-					triggerData = {
-						headers: {},
-						params: {},
-						query: {},
-						body: {},
+					runData.pinData = {
+						[triggerNode.name]: [
+							{
+								json: {
+									headers: {},
+									params: {},
+									query: {},
+									body: {},
+								},
+							},
+						],
 					};
 				}
-
-				// Use triggerToStartFrom to bypass webhook wait
-				manualRunPayload.triggerToStartFrom = {
-					name: triggerNode.name,
-					data: {
-						startTime: Date.now(),
-						executionTime: 0,
-						executionIndex: 0,
-						source: [],
-						data: {
-							main: [
-								[
-									{
-										json: triggerData,
-									},
-								],
-							],
-						},
-					},
-				};
 			}
 		}
 
-		const executionResponse = await workflowExecutionService.executeManually(
-			manualRunPayload,
-			user,
-			undefined,
-		);
-
-		// This should not happen with current implementation, but leaving it to handle possible edge-cases
-		if (executionResponse.waitingForWebhook) {
-			const payload = {
-				success: false,
-				executionId: executionResponse.executionId ?? null,
-				waitingForWebhook: true,
-				message: MANUAL_EXECUTION_ERROR_MESSAGE,
-			};
-
-			return {
-				content: [{ type: 'text', text: JSON.stringify(payload) }],
-				structuredContent: payload,
-			};
-		}
-
-		const executionId = executionResponse.executionId ?? null;
+		const executionId = await workflowRunner.run(runData);
 
 		if (!executionId) {
 			const payload = {
