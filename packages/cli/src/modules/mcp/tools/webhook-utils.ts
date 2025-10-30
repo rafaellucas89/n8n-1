@@ -108,7 +108,7 @@ export const getTriggerDetails = async (
 const getScheduleTriggerDetails = (scheduleTriggers: INode[]): string => {
 	const header = 'Schedule trigger(s):\n\n';
 	const footer =
-		'\n\nSchedule triggers run based on their configured intervals and do not require external input to execute.';
+		'\n\nScheduled workflows can be executed directly through MCP clients and do not require external inputs.';
 	const triggers = scheduleTriggers
 		.map(
 			(node, index) => `
