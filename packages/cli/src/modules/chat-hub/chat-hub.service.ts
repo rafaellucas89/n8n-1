@@ -38,6 +38,7 @@ import {
 	INodeParameters,
 	INode,
 } from 'n8n-workflow';
+import { v4 as uuidv4 } from 'uuid';
 
 import { ActiveExecutions } from '@/active-executions';
 import { CredentialsFinderService } from '@/credentials/credentials-finder.service';
@@ -1416,9 +1417,9 @@ export class ChatHubService {
 						},
 						type: 'n8n-nodes-base.jinaAiTool',
 						typeVersion: 1,
-						position: [368, 208],
-						id: '2131b803-8789-4675-826f-3f46dfa0df63',
-						name: 'Search web with Jina AI',
+						position: [768, 320],
+						id: uuidv4(),
+						name: 'Read URL content in Jina AI',
 						credentials: {
 							jinaAiApi: {
 								id: 'B4nKenuSx2Y3P7aw',
