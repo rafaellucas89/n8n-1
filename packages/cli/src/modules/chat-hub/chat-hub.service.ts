@@ -419,6 +419,7 @@ export class ChatHubService {
 					history,
 					message,
 					undefined,
+					session.tools,
 					trx,
 				);
 			},
@@ -505,6 +506,7 @@ export class ChatHubService {
 					history,
 					message,
 					undefined,
+					session.tools,
 					trx,
 				);
 			}
@@ -593,6 +595,7 @@ export class ChatHubService {
 					history,
 					message,
 					undefined,
+					session.tools,
 					trx,
 				);
 			}
@@ -625,6 +628,7 @@ export class ChatHubService {
 		history: ChatHubMessage[],
 		message: string,
 		systemMessage: string | undefined,
+		tools: INode[],
 		trx: EntityManager,
 	) {
 		const credential = await this.chatHubCredentialsService.ensureCredentials(
@@ -643,6 +647,7 @@ export class ChatHubService {
 			credentials,
 			model,
 			systemMessage,
+			tools,
 			trx,
 		);
 	}
@@ -688,6 +693,8 @@ export class ChatHubService {
 			},
 		};
 
+		const tools: INode[] = [];
+
 		return await this.prepareBaseChatWorkflow(
 			user,
 			sessionId,
@@ -696,6 +703,7 @@ export class ChatHubService {
 			history,
 			message,
 			systemMessage,
+			tools,
 			trx,
 		);
 	}
@@ -986,7 +994,7 @@ export class ChatHubService {
 			);
 		} finally {
 			if (provider !== 'n8n') {
-				await this.deleteChatWorkflow(workflowData.id);
+				// await this.deleteChatWorkflow(workflowData.id);
 			}
 		}
 	}
@@ -1397,6 +1405,28 @@ export class ChatHubService {
 				title: 'New Chat',
 				agentName,
 				...selectedModel,
+				tools: [
+					{
+						parameters: {
+							url: "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', ``, 'string') }}",
+							simplify:
+								"={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Simplify', ``, 'boolean') }}",
+							options: {},
+							requestOptions: {},
+						},
+						type: 'n8n-nodes-base.jinaAiTool',
+						typeVersion: 1,
+						position: [368, 208],
+						id: '2131b803-8789-4675-826f-3f46dfa0df63',
+						name: 'Search web with Jina AI',
+						credentials: {
+							jinaAiApi: {
+								id: 'B4nKenuSx2Y3P7aw',
+								name: 'Jina AI account',
+							},
+						},
+					},
+				],
 			},
 			trx,
 		);
