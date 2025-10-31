@@ -42,6 +42,8 @@ export {
 	ChatHubCreateAgentRequest,
 	ChatHubUpdateAgentRequest,
 	type EnrichedStructuredChunk,
+	type WebSearchTool,
+	WEB_SEARCH_TOOL_CREDENTIAL_TYPE_MAP,
 } from './chat-hub';
 
 export type { Collaborator } from './push/collaboration';

@@ -2,7 +2,7 @@
 import { useToast } from '@/composables/useToast';
 import { providerDisplayNames } from '@/features/ai/chatHub/constants';
 import type { ChatHubLLMProvider, ChatModelDto } from '@n8n/api-types';
-import { N8nIconButton, N8nInput, N8nText } from '@n8n/design-system';
+import { N8nActionToggle, N8nIconButton, N8nInput, N8nText } from '@n8n/design-system';
 import { useSpeechRecognition } from '@vueuse/core';
 import { computed, ref, useTemplateRef, watch } from 'vue';
 
@@ -18,6 +18,7 @@ const emit = defineEmits<{
 	stop: [];
 	selectModel: [];
 	setCredentials: [ChatHubLLMProvider];
+	selectWebSearchTools: [];
 }>();
 
 const inputRef = useTemplateRef<HTMLElement>('inputRef');
@@ -95,6 +96,33 @@ watch(speechInput.error, (event) => {
 	}
 });
 
+const SETTING_ACTIONS = {
+	WEB_SEARCH: 'web-search',
+};
+
+const settingActions = computed(() => {
+	const items = [
+		{
+			label: 'Web Search',
+			value: SETTING_ACTIONS.WEB_SEARCH,
+		},
+	];
+
+	return items;
+});
+
+function onConfigureWebSearch() {
+	emit('selectWebSearchTools');
+}
+
+function onSettingAction(action: string) {
+	switch (action) {
+		case SETTING_ACTIONS.WEB_SEARCH:
+			onConfigureWebSearch();
+			break;
+	}
+}
+
 defineExpose({
 	focus: () => inputRef.value?.focus(),
 	setText: (text: string) => {
@@ -153,6 +181,8 @@ defineExpose({
 					text
 					@click="onAttach"
 				/> -->
+
+				<N8nActionToggle :actions="settingActions" theme="dark" @action="onSettingAction" />
 				<N8nIconButton
 					v-if="speechInput.isSupported"
 					native-type="button"

@@ -35,6 +35,7 @@ import { useChatStore } from './chat.store';
 import { useDocumentTitle } from '@/composables/useDocumentTitle';
 import { useUIStore } from '@/stores/ui.store';
 import { useChatCredentials } from '@/features/ai/chatHub/composables/useChatCredentials';
+import WebSearchToolsModal from './components/WebSearchToolsModal.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -154,6 +155,7 @@ const isMissingSelectedCredential = computed(() => !credentialsForSelectedProvid
 const editingMessageId = ref<string>();
 const didSubmitInCurrentSession = ref(false);
 const editingAgentId = ref<string | undefined>(undefined);
+const isWebSearchToolsModalOpen = ref(false);
 
 function scrollToBottom(smooth: boolean) {
 	scrollContainerRef.value?.scrollTo({
@@ -350,6 +352,15 @@ function handleConfigureModel() {
 	headerRef.value?.openModelSelector();
 }
 
+function handleConfigureWebSearch() {
+	isWebSearchToolsModalOpen.value = true;
+	uiStore.openModal('webSearchToolsSelector');
+}
+
+function onSelectWebSearchTool(toolConfig: { nodeType: string; credentialId: string | null }) {
+	console.log('Selected Web Search Tool:', toolConfig);
+}
+
 async function handleEditAgent(agentId: string) {
 	try {
 		await chatStore.fetchCustomAgent(agentId);
@@ -397,6 +408,12 @@ function closeAgentEditor() {
 			:credentials="credentialsByProvider"
 			@create-custom-agent="handleSelectModel"
 			@close="closeAgentEditor"
+		/>
+
+		<WebSearchToolsModal
+			v-if="isWebSearchToolsModalOpen"
+			:initial-value="null"
+			@select="onSelectWebSearchTool"
 		/>
 
 		<N8nScrollArea
@@ -459,6 +476,7 @@ function closeAgentEditor() {
 						@stop="onStop"
 						@select-model="handleConfigureModel"
 						@set-credentials="handleConfigureCredentials"
+						@select-web-search-tools="handleConfigureWebSearch"
 					/>
 				</div>
 			</div>

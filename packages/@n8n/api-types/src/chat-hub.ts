@@ -11,6 +11,7 @@ import type {
 	ResourceMapperValue,
 	StructuredChunk,
 } from 'n8n-workflow';
+import { JINA_AI_TOOL_NODE_TYPE, SEAR_XNG_TOOL_NODE_TYPE } from 'n8n-workflow';
 import { z } from 'zod';
 import { Z } from 'zod-class';
 
@@ -38,6 +39,16 @@ export const PROVIDER_CREDENTIAL_TYPE_MAP: Record<
 	openai: 'openAiApi',
 	anthropic: 'anthropicApi',
 	google: 'googlePalmApi',
+};
+
+export type WebSearchTool = typeof JINA_AI_TOOL_NODE_TYPE | typeof SEAR_XNG_TOOL_NODE_TYPE;
+
+/**
+ * Map of supported tools to their credential types
+ */
+export const WEB_SEARCH_TOOL_CREDENTIAL_TYPE_MAP: Record<WebSearchTool, string> = {
+	[JINA_AI_TOOL_NODE_TYPE]: 'jinaAiApi',
+	[SEAR_XNG_TOOL_NODE_TYPE]: 'searXngApi',
 };
 
 /**
