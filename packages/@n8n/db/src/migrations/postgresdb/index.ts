@@ -1,3 +1,4 @@
+import { AddToolsColumnToChatHubTables1761830340990 } from '../common/1761830340990-AddToolsColumnToChatHubTables';
 import { AddMfaColumns1690000000030 } from './../common/1690000000040-AddMfaColumns';
 import { AddInputsOutputsToTestCaseExecution1752669793000 } from './../common/1752669793000-AddInputsOutputsToTestCaseExecution';
 import { LinkRoleToProjectRelationTable1753953244168 } from './../common/1753953244168-LinkRoleToProjectRelationTable';
@@ -219,4 +220,5 @@ export const postgresMigrations: Migration[] = [
 	DropUnusedChatHubColumns1760965142113,
 	AddWorkflowVersionColumn1761047826451,
 	ChangeDependencyInfoToJson1761655473000,
+	AddToolsColumnToChatHubTables1761830340990,
 ];
